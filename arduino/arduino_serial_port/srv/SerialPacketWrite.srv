@@ -1,0 +1,5 @@
+uint8 length
+string data
+---
+uint8 length
+bool status
