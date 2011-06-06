@@ -1,4 +1,7 @@
 <launch>
-	<node name="serial_port" pkg="arduino_serial_port" type="arduino_serial_port" output="screen" />
+	<node name="serial_port" pkg="arduino_serial_port" type="arduino_serial_port" output="screen">
+		<param name="serial_port_baud_rate" value="9600" type="int" />
+		<param name="serial_port_name" value="/dev/ttyUSB0" type="str" />
+	</node>
 	<node name="joystick" pkg="arduino_usb_gameport" type="joystick" output="screen" />
 </launch>

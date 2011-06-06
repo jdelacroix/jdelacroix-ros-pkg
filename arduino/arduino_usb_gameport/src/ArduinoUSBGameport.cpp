@@ -96,7 +96,7 @@ void ArduinoUSBGameport::run() {
 	mReaderService.request.eol = '\n';
 	while(mNodeHandle.ok()) {
 		if(mClient.call(mReaderService)) {
-			ROS_INFO("received %d bytes of data: %s", mReaderService.response.length, mReaderService.response.data.c_str());
+			ROS_INFO("Received %d bytes of data: %s", mReaderService.response.length, mReaderService.response.data.c_str());
 			parse(mReaderService.response.data.c_str());
 		} else {
 			ROS_ERROR("Failed to make service call: 'arduino_serial_port_read_eol'");

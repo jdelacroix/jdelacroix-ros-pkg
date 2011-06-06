@@ -54,7 +54,7 @@ bool ArduinoSerialPort::serial_port_read(arduino_serial_port::SerialPacketRead::
 	std::string data;
 	int bytes_read = 0;
 
-	ROS_INFO("Requesting to read %d bytes.", req.length);
+//	ROS_INFO("Requesting to read %d bytes.", req.length);
 
 	while(bytes_read < req.length) {
 		int rc = read(mSerialPort, buffer, req.length-bytes_read);
@@ -83,13 +83,13 @@ bool ArduinoSerialPort::serial_port_read_eol(arduino_serial_port::SerialPacketRe
 	bool eol_detected = false;
 	int bytes_read = 0;
 
-	ROS_INFO("Requesting to read until EOL character %c appears.", req.eol);
+//	ROS_INFO("Requesting to read until EOL character %c appears.", req.eol);
 
 	while(!eol_detected) {
 		int rc = read(mSerialPort, buffer, 1);
 
 		if(rc != 1) { // != req.length) {
-			ROS_ERROR("Error reading the requested number of bytes.");
+			ROS_ERROR("Error reading until EOL character appears.");
 			res.status = false;
 			return res.status;
 		} else {
