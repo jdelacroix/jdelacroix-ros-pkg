@@ -13,11 +13,13 @@ ArduinoSerialPort::ArduinoSerialPort() {
 
 ArduinoSerialPort::~ArduinoSerialPort() {
 	// TODO Auto-generated destructor stub
+	close(mSerialPort);
 }
 
 void ArduinoSerialPort::setup() {
 	mSerialPortWriter = mNodeHandle.advertiseService("arduino_serial_port_write", &ArduinoSerialPort::serial_port_write, this);
 	mSerialPortReader = mNodeHandle.advertiseService("arduino_serial_port_read", &ArduinoSerialPort::serial_port_read, this);
+	mSerialPortReaderEOL = mNodeHandle.advertiseService("arduino_serial_port_read_eol", &ArduinoSerialPort::serial_port_read_eol, this);
 
 	mNodeHandle.param<std::string>("serial_port_name", mSerialPortName, "/dev/ttyUSB0");
 	mNodeHandle.param<int>("serial_port_baud_rate", mSerialPortBaudRate, 9600);
@@ -34,8 +36,10 @@ void ArduinoSerialPort::run() {
 bool ArduinoSerialPort::serial_port_write(arduino_serial_port::SerialPacketWrite::Request &req,
 										  arduino_serial_port::SerialPacketWrite::Response &res) {
 
+
 	int rc = write(mSerialPort, req.data.c_str(), req.length);
 	if (rc != req.length) {
+		ROS_ERROR("Error writing the requested number of bytes.");
 		res.status = false;
 		return res.status;
 	}
@@ -47,17 +51,59 @@ bool ArduinoSerialPort::serial_port_write(arduino_serial_port::SerialPacketWrite
 bool ArduinoSerialPort::serial_port_read(arduino_serial_port::SerialPacketRead::Request &req,
 										 arduino_serial_port::SerialPacketRead::Response &res) {
 	char buffer[req.length];
+	std::string data;
+	int bytes_read = 0;
 
-	int rc = read(mSerialPort, buffer, req.length);
+	ROS_INFO("Requesting to read %d bytes.", req.length);
 
-	if(rc != req.length) {
-		res.status = false;
-		return res.status;
+	while(bytes_read < req.length) {
+		int rc = read(mSerialPort, buffer, req.length-bytes_read);
+
+		if(rc == -1) { // != req.length) {
+			ROS_ERROR("Error reading the requested number of bytes.");
+			res.status = false;
+			return res.status;
+		} else {
+			bytes_read += rc;
+			data.append(buffer, rc);
+
+		}
 	}
 
+	res.data = data;
+	res.length = bytes_read;
+	res.status = true;
+	return res.status;
+}
 
-	res.data = std::string(buffer);
-	res.length = rc;
+bool ArduinoSerialPort::serial_port_read_eol(arduino_serial_port::SerialPacketReadEOL::Request &req,
+										     arduino_serial_port::SerialPacketReadEOL::Response &res) {
+	char buffer[1];
+	std::string data;
+	bool eol_detected = false;
+	int bytes_read = 0;
+
+	ROS_INFO("Requesting to read until EOL character %c appears.", req.eol);
+
+	while(!eol_detected) {
+		int rc = read(mSerialPort, buffer, 1);
+
+		if(rc != 1) { // != req.length) {
+			ROS_ERROR("Error reading the requested number of bytes.");
+			res.status = false;
+			return res.status;
+		} else {
+			if(buffer[0] != req.eol) {
+				data.append(buffer, 1);
+				bytes_read++;
+			} else {
+				eol_detected = true;
+			}
+		}
+	}
+
+	res.data = data;
+	res.length = bytes_read;
 	res.status = true;
 	return res.status;
 }
@@ -72,12 +118,14 @@ int ArduinoSerialPort::serial_port_init(const char* name, int baud)
 
     fd = open(name, O_RDWR | O_NOCTTY | O_NDELAY);
     if (fd == -1)  {
-        perror("init_serialport: Unable to open port ");
+        ROS_ERROR("init_serialport: Unable to open port ");
         return -1;
     }
 
+    fcntl(fd, F_SETFL, 0);
+
     if (tcgetattr(fd, &toptions) < 0) {
-        perror("init_serialport: Couldn't get term attributes");
+        ROS_ERROR("init_serialport: Couldn't get term attributes");
         return -1;
     }
     speed_t brate = baud; // let you override switch below if needed
@@ -112,7 +160,7 @@ int ArduinoSerialPort::serial_port_init(const char* name, int baud)
     toptions.c_cc[VTIME] = 20;
 
     if( tcsetattr(fd, TCSANOW, &toptions) < 0) {
-        perror("init_serialport: Couldn't set term attributes");
+        ROS_ERROR("init_serialport: Couldn't set term attributes");
         return -1;
     }
 

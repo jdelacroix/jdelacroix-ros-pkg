@@ -23,6 +23,7 @@
 
 #include "arduino_serial_port/SerialPacketWrite.h"
 #include "arduino_serial_port/SerialPacketRead.h"
+#include "arduino_serial_port/SerialPacketReadEOL.h"
 
 using namespace arduino_serial_port;
 
@@ -33,6 +34,7 @@ private:
 
 	ros::ServiceServer mSerialPortWriter;
 	ros::ServiceServer mSerialPortReader;
+	ros::ServiceServer mSerialPortReaderEOL;
 
 	int mSerialPort;
 	std::string mSerialPortName;
@@ -43,6 +45,9 @@ private:
 
 	bool serial_port_read(arduino_serial_port::SerialPacketRead::Request &req,
 						  arduino_serial_port::SerialPacketRead::Response &res);
+
+	bool serial_port_read_eol(arduino_serial_port::SerialPacketReadEOL::Request &req,
+		                      arduino_serial_port::SerialPacketReadEOL::Response &res);
 
 	int serial_port_init(const char* device_name, int baud);
 
