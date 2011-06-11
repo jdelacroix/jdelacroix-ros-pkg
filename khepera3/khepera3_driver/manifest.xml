@@ -1,0 +1,15 @@
+<package>
+  <description brief="khepera3_driver">
+
+     khepera3_driver
+
+  </description>
+  <author></author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/khepera3_driver</url>
+  <depend package="roscpp"/>
+
+</package>
+
+

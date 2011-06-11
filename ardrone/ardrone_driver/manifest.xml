@@ -1,7 +1,7 @@
 <package>
   <description brief="ardrone_driver">
 
-     ROS hardware driver for the (modified) AR.Drone platform.
+     ROS hardware driver for the AR.Drone.
 
   </description>
   <author>Jean-Pierre de la Croix</author>

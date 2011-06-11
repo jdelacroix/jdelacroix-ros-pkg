@@ -1,0 +1,9 @@
+<stack>
+  <description brief="khepera3">ROS packages for KTeam's Khepera III (K3)</description>
+  <author>Maintained by Jean-Pierre de la Croix</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/khepera3</url>
+  <depend stack="ros" />
+
+</stack>
