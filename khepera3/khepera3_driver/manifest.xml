@@ -1,10 +1,10 @@
 <package>
   <description brief="khepera3_driver">
 
-     khepera3_driver
+     ROS hardware driver for the Khepera III (K3) mobile robots.
 
   </description>
-  <author></author>
+  <author>Jean-Pierre de la Croix</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/khepera3_driver</url>
