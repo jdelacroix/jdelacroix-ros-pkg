@@ -1,0 +1,6 @@
+---
+int32 infrared_sensor_count
+int32[11] infrared_sensors
+int32 wheel_encoder_count
+int32[2] wheel_encoders
+bool status

@@ -1,34 +1,38 @@
 #include "Khepera3Driver.h"
 
-K3Driver::Khepera3Driver() {
+void alarm_callback(int arg) { }
+
+Khepera3Driver::Khepera3Driver() {
 
 	//Check for port parameter
-	if(!(ros::param::get("khepera3/port", mPort)))
-		mPort = 4555; // default port
+	if(!(ros::param::get("khepera3/port", m_port)))
+		m_port = 4555; // default port
 
 	//Check for IP address parameter
-	if(!ros::param::get("khepera3/ip_addr", mIPAddress))
-		mIPAdress = "192.168.1.201"; // default IP address
+	if(!ros::param::get("khepera3/ip_addr", m_ip_address))
+		m_ip_address = "192.168.1.201"; // default IP address
 
-	ROS_INFO("Connecting to K3 at %s:%i.", mIPAddress, mPort);
-	this.mConnect();
+	m_timeout = 1;
 
-	mDataPublisher = node_handle.advertise<khepera3_driver::Khepera3Data>("khepera3/sensor_data", 1);
-	mControlSubscriber = node_handle.subscribe("khepera3/ctrl",1, &Khepera3Driver::mControlCallback,this);
+	ROS_INFO("Connecting to K3 at %s:%i.", m_ip_address.c_str(), m_port);
 
-}
-
-K3Driver::~Khepera3Driver() {
+	m_data_receiver = m_node_handle.advertiseService("khepera3_receive_data", &Khepera3Driver::receive_data, this);
+    m_control_sender = m_node_handle.advertiseService("khepera3_send_control", &Khepera3Driver::send_control, this);
 
 }
 
-void Khepera3Driver::mControlCallback(const khepera3_driver::UnicycleControl &msg) {
+Khepera3Driver::~Khepera3Driver() {
+
+}
+
+bool Khepera3Driver::send_control(khepera3_driver::UnicycleControl::Request &req,
+								  khepera3_driver::UnicycleControl::Response &res) {
 
 	// convert unicycle to differential driver
 	// limit v \in [-0.3148,0.3148] and w \in [-2.2763,2.2763]
 
-	const float v = fmaxf(fminf(msg.linear_velocity,0.3148),-0.3148);
-	const float w = fmaxf(fminf(msg.angular_velocity,2.276),-2.2763);
+	const float v = fmaxf(fminf(req.linear_velocity,0.3148),-0.3148);
+	const float w = fmaxf(fminf(req.angular_velocity,2.276),-2.2763);
 
 	const float R = 0.021; // wheel radius
 	const float L = 0.0885; // wheel base length
@@ -42,32 +46,169 @@ void Khepera3Driver::mControlCallback(const khepera3_driver::UnicycleControl &ms
 	const int right_wheel_speed = floor(vel_r*R/SF);
 	const int left_wheel_speed = floor(vel_l*R/SF);
 
-	mSendControl(right_wheel_speed, left_wheel_speed);
+	res.status = send_control_udp(right_wheel_speed, left_wheel_speed);
+
+	return res.status;
 
 }
 
-void mSendControl() {
+bool Khepera3Driver::send_control_udp(int right_wheel_speed, int left_wheel_speed) {
 
-void Khepera3Driver::mAlarmCallback(int arg) { }
+	char message[256];
+	sprintf(message, "$K3DRV,REQ,CTRL,%d,%d", right_wheel_speed, left_wheel_speed);
 
-void Khepera3Driver::mConnect() {
+	  /* Send received datagram back to the client */
+	printf("Sending request: %s\n", message);
+	if (sendto(m_socket, message, strlen(message), 0,
+	  (struct sockaddr *) &m_client_address, sizeof(m_client_address)) != strlen(message)) {
+	  ROS_ERROR("sendto() sent a different number of bytes than expected");
+	  return false;
+	}
 
-	unsigned int cliAddrLen;         /* Length of incoming message */
-	char echoBuffer[ECHOMAX];        /* Buffer for echo string */
-	unsigned short echoServPort;     /* Server port */
-	int recvMsgSize;                 /* Size of received message */
+	printf("Waiting to receive a message on port %d (timeout = %ds).\n", m_port, m_timeout);
+
+	char reply[256];
+	int reply_length;
+	socklen_t client_address_length;
+
+	alarm(m_timeout);
+	/* Block until receive message from a client */
+	if ((reply_length = recvfrom(m_socket, reply, 256, 0,
+		(struct sockaddr *) &m_client_address, &client_address_length)) < 0) {
+		if(errno == EINTR) {
+			alarm(0);
+			ROS_ERROR("timeout() received.");
+			return false;
+		} else {
+			ROS_ERROR("recvfrom() failed");
+			return false;
+		}
+	}
+
+	return true;
+
+}
+
+bool Khepera3Driver::receive_data(khepera3_driver::SensorData::Request &req,
+								  khepera3_driver::SensorData::Response &res) {
+	char reply[256];
+	res.status = receive_data_udp(reply);
+
+	if(res.status) {
+
+		char *token, *saveptr, *delim = ",";
+
+		token = strtok_r(reply, delim, &saveptr);
+		if (token == NULL || strcmp(token, "$K3DRV") != 0) {
+			res.status = false;
+			return res.status;
+		}
+
+		token = strtok_r(NULL, delim, &saveptr);
+		if (token == NULL || strcmp(token, "REQ") != 0) {
+			res.status = false;
+			return res.status;
+		}
+
+		token = strtok_r(NULL, delim, &saveptr);
+		if (token == NULL || strcmp(token, "DATA") != 0) {
+			res.status = false;
+			return res.status;
+		}
+
+		token = strtok_r(NULL, delim, &saveptr);
+		if (token == NULL || strcmp(token, "IR") != 0) {
+			res.status = false;
+			return res.status;
+		}
+
+		token = strtok_r(NULL, delim, &saveptr);
+		if (token == NULL) {
+			res.status = false;
+			return false;
+		}
+
+		res.infrared_sensor_count = atoi(token);
+
+		for (int i = 0; i < res.infrared_sensor_count; i++) {
+			token = strtok_r(NULL, delim, &saveptr);
+			if (token == NULL) {
+				res.status = false;
+				return false;
+			}
+			res.infrared_sensors[i] = atoi(token);
+		}
+
+		token = strtok_r(NULL, delim, &saveptr);
+		if (token == NULL || strcmp(token, "ENC") != 0) {
+			res.status = false;
+			return false;
+		}
+
+		res.wheel_encoder_count = atoi(token);
+
+		for (int i = 0; i < res.wheel_encoder_count; i++) {
+			token = strtok_r(NULL, delim, &saveptr);
+			if (token == NULL) {
+				res.status = false;
+				return false;
+			}
+			res.wheel_encoders[i] = atoi(token);
+		}
+
+	}
+
+	return res.status;
+
+}
+
+bool Khepera3Driver::receive_data_udp(char *reply) {
+
+	char message[256];
+	socklen_t client_address_length;
+	int reply_length;
+	sprintf(message, "$K3DRV,REQ,DATA");
+
+	  /* Send received datagram back to the client */
+	printf("Sending request: %s\n", message);
+	if (sendto(m_socket, message, strlen(message), 0,
+	  (struct sockaddr *) &m_client_address, sizeof(m_client_address)) != strlen(message)) {
+	  ROS_ERROR("sendto() sent a different number of bytes than expected");
+	  return false;
+	}
+
+	printf("Waiting to receive a message on port %d (timeout = %ds).\n", m_port, m_timeout);
+
+	alarm(m_timeout);
+	/* Block until receive message from a client */
+	if ((reply_length = recvfrom(m_socket, reply, 256, 0,
+		(struct sockaddr *) &m_client_address, &client_address_length)) < 0) {
+		if(errno == EINTR) {
+			alarm(0);
+			ROS_ERROR("timeout() received.");
+			return false;
+		} else {
+			ROS_ERROR("recvfrom() failed");
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void Khepera3Driver::connect() {
 
 	/* Create socket for sending/receiving datagrams */
-	if ((mSocket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+	if ((m_socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 		ROS_FATAL("socket() failed");
 		exit(-1);
 	}
 
 	/* Construct local address structure */
-	memset(&mServerAddress, 0, sizeof(mServerAddress));   /* Zero out structure */
-	mServerAddress.sin_family = AF_INET;                /* Internet address family */
-	mServerAddress.sin_addr.s_addr = htonl(INADDR_ANY); /* Any incoming interface */
-	mServerAddress.sin_port = htons(mPort);      /* Local port */
+	memset(&m_server_address, 0, sizeof(m_server_address));   /* Zero out structure */
+	m_server_address.sin_family = AF_INET;                /* Internet address family */
+	m_server_address.sin_addr.s_addr = htonl(INADDR_ANY); /* Any incoming interface */
+	m_server_address.sin_port = htons(m_port);      /* Local port */
 
 	/* Bind to the local address */
 //	if (bind(sock, (struct sockaddr *) &echoServAddr, sizeof(echoServAddr)) < 0)
@@ -75,15 +216,15 @@ void Khepera3Driver::mConnect() {
 
 	/* Set reading timeout */
 
-	mSignalCallback.sa_handler = Khepera3Driver::mAlarmCallback;
-	if (sigfillset(&mSignalCallback.sa_mask) < 0) {
+	m_signal_callback.sa_handler = alarm_callback;
+	if (sigfillset(&m_signal_callback.sa_mask) < 0) {
 		ROS_FATAL("sigfillset() failed");
 		exit(-1);
 	}
 
-	mSignalCallback.sa_flags = 0;
+	m_signal_callback.sa_flags = 0;
 
-	if (sigaction(SIGALRM, &mSignalCallback, 0) < 0) {
+	if (sigaction(SIGALRM, &m_signal_callback, 0) < 0) {
 		ROS_FATAL("sigaction() failed");
 		exit(-1);
 	}
@@ -91,65 +232,28 @@ void Khepera3Driver::mConnect() {
 	// connect
 }
 
-
-
-	    for (;;) /* Run forever */
-	    {
-	        /* Set the size of the in-out parameter */
-	        cliAddrLen = sizeof(mClientAddress);
-
-	        printf("Waiting to receive a message on port %d (timeout = %ds).\n", algorithm.configuration.udp_port, algorithm.configuration.timeout);
-
-	        alarm(algorithm.configuration.timeout);
-	        /* Block until receive message from a client */
-	        if ((recvMsgSize = recvfrom(sock, echoBuffer, ECHOMAX, 0,
-	            (struct sockaddr *) &mClientAddress, &cliAddrLen)) < 0) {
-	        	if(errno == EINTR) {
-	        		alarm(0);
-	        		khepera3_drive_set_speed(0,0);
-	        	} else {
-	                DieWithError("recvfrom() failed");
-	        	}
-	        }
-		/* UDP protocol:
-		 *
-		 * $K3DRV,REQ,INIT
-		 * $K3DRV,RES,INIT
-		 *
-		 * $K3DRV,REQ,CTRL,R,L
-		 * $K3DRV,RES,CTRL
-		 *
-		 * $K3DRV,REQ,DATA
-		 * $K3DRV,RES,DATA,IRC,IR0,...,IR10,ENC,EN0,EN1
-		 *
-		 */
-
-	        printf("Handling client %s\n", inet_ntoa(mClientAddress.sin_addr));
-
-			char replyBuffer[ECHOMAX];
-			parse_udp_packet(echoBuffer, replyBuffer);
-
-			if(replyBuffer != NULL) {
-			  /* Send received datagram back to the client */
-			  printf("Sending reply: %s\n", replyBuffer);
-			  if (sendto(sock, replyBuffer, strlen(replyBuffer), 0,
-				  (struct sockaddr *) &mClientAddress, sizeof(mClientAddress)) != strlen(replyBuffer))
-				  DieWithError("sendto() sent a different number of bytes than expected");
-			} else {
-			  //
-			}
-	    }
-	    /* NOT REACHED */
-	    }
+void Khepera3Driver::disconnect() {
+	close(m_socket);
 }
+
+void Khepera3Driver::run() {
+
+	while(m_node_handle.ok()) {
+		ros::spin();
+	}
+}
+
+
 
 int main(int argc, char **argv)
 {
-  Khepera3Driver *drv;
+  Khepera3Driver driver;
+
   ros::init(argc, argv, "khepera3_driver");
 
-
-  (new Khepera3Driver())->run();
+  driver.connect();
+  driver.run();
+  driver.disconnect();
 
   return 1;
 }
