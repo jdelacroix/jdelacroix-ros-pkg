@@ -1,0 +1,17 @@
+<package>
+  <description brief="khepera3_odometry">
+
+     Thie package computes odometry from the wheel encoders of a K3.
+
+  </description>
+  <author>Jean-Pierre de la Croix</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/khepera3_odometry</url>
+  <depend package="roscpp"/>
+  <depend package="khepera3_driver"/>
+  <depend package="geometry_msgs"/>
+
+</package>
+
+

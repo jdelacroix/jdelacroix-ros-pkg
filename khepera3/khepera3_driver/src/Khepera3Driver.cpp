@@ -70,11 +70,12 @@ bool Khepera3Driver::send_control_udp(int right_wheel_speed, int left_wheel_spee
 	char reply[256];
 	int reply_length;
 	socklen_t client_address_length;
+	struct sockaddr_in client_address;
 
 	alarm(m_timeout);
 	/* Block until receive message from a client */
 	if ((reply_length = recvfrom(m_socket, reply, 256, 0,
-		(struct sockaddr *) &m_client_address, &client_address_length)) < 0) {
+		(struct sockaddr *) &client_address, &client_address_length)) < 0) {
 		if(errno == EINTR) {
 			alarm(0);
 			ROS_ERROR("timeout() received.");
@@ -100,30 +101,35 @@ bool Khepera3Driver::receive_data(khepera3_driver::SensorData::Request &req,
 
 		token = strtok_r(reply, delim, &saveptr);
 		if (token == NULL || strcmp(token, "$K3DRV") != 0) {
+			ROS_ERROR("Parsing failed: expected $K3DRV token");
 			res.status = false;
 			return res.status;
 		}
 
 		token = strtok_r(NULL, delim, &saveptr);
-		if (token == NULL || strcmp(token, "REQ") != 0) {
+		if (token == NULL || strcmp(token, "RES") != 0) {
+			ROS_ERROR("Parsing failed: expected RES token");
 			res.status = false;
 			return res.status;
 		}
 
 		token = strtok_r(NULL, delim, &saveptr);
 		if (token == NULL || strcmp(token, "DATA") != 0) {
+			ROS_ERROR("Parsing failed: expected DATA token");
 			res.status = false;
 			return res.status;
 		}
 
 		token = strtok_r(NULL, delim, &saveptr);
 		if (token == NULL || strcmp(token, "IR") != 0) {
+			ROS_ERROR("Parsing failed: expected IR token");
 			res.status = false;
 			return res.status;
 		}
 
 		token = strtok_r(NULL, delim, &saveptr);
 		if (token == NULL) {
+			ROS_ERROR("Parsing failed: expected IR_COUNT token");
 			res.status = false;
 			return false;
 		}
@@ -133,6 +139,7 @@ bool Khepera3Driver::receive_data(khepera3_driver::SensorData::Request &req,
 		for (int i = 0; i < res.infrared_sensor_count; i++) {
 			token = strtok_r(NULL, delim, &saveptr);
 			if (token == NULL) {
+				ROS_ERROR("Parsing failed: expected IR_%d token", i);
 				res.status = false;
 				return false;
 			}
@@ -141,6 +148,14 @@ bool Khepera3Driver::receive_data(khepera3_driver::SensorData::Request &req,
 
 		token = strtok_r(NULL, delim, &saveptr);
 		if (token == NULL || strcmp(token, "ENC") != 0) {
+			ROS_ERROR("Parsing failed: expected ENC token");
+			res.status = false;
+			return false;
+		}
+
+		token = strtok_r(NULL, delim, &saveptr);
+		if (token == NULL) {
+			ROS_ERROR("Parsing failed: expected ENC_COUNT token");
 			res.status = false;
 			return false;
 		}
@@ -150,6 +165,7 @@ bool Khepera3Driver::receive_data(khepera3_driver::SensorData::Request &req,
 		for (int i = 0; i < res.wheel_encoder_count; i++) {
 			token = strtok_r(NULL, delim, &saveptr);
 			if (token == NULL) {
+				ROS_ERROR("Parsing failed: expected ENC_%d token", i);
 				res.status = false;
 				return false;
 			}
@@ -166,6 +182,7 @@ bool Khepera3Driver::receive_data_udp(char *reply) {
 
 	char message[256];
 	socklen_t client_address_length;
+	struct sockaddr_in client_address;
 	int reply_length;
 	sprintf(message, "$K3DRV,REQ,DATA");
 
@@ -182,7 +199,7 @@ bool Khepera3Driver::receive_data_udp(char *reply) {
 	alarm(m_timeout);
 	/* Block until receive message from a client */
 	if ((reply_length = recvfrom(m_socket, reply, 256, 0,
-		(struct sockaddr *) &m_client_address, &client_address_length)) < 0) {
+		(struct sockaddr *) &client_address, &client_address_length)) < 0) {
 		if(errno == EINTR) {
 			alarm(0);
 			ROS_ERROR("timeout() received.");
@@ -193,12 +210,14 @@ bool Khepera3Driver::receive_data_udp(char *reply) {
 		}
 	}
 
+	reply[reply_length] = '\0';
+
 	return true;
 }
 
 bool Khepera3Driver::initialize() {
 	char message[256];
-	sprintf(message, "$K3DRV,REQ,INIT\0");
+	sprintf(message, "$K3DRV,REQ,INIT");
 
 	  /* Send received datagram back to the client */
 	printf("Sending request: %s\n", message);
@@ -213,11 +232,12 @@ bool Khepera3Driver::initialize() {
 	char reply[256];
 	int reply_length;
 	socklen_t client_address_length;
+	struct sockaddr_in client_address;
 
 	alarm(m_timeout);
 	/* Block until receive message from a client */
 	if ((reply_length = recvfrom(m_socket, reply, 256, 0,
-		(struct sockaddr *) &m_client_address, &client_address_length)) < 0) {
+		(struct sockaddr *) &client_address, &client_address_length)) < 0) {
 		if(errno == EINTR) {
 			alarm(0);
 			ROS_ERROR("timeout() received.");

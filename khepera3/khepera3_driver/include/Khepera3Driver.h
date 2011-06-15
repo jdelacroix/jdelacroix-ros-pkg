@@ -42,7 +42,7 @@ private:
 
 	int m_socket;                        /* Socket */
 	struct sockaddr_in m_server_address; 	/* Local address */
-	struct sockaddr_in m_client_address; 	/* Client address */
+//	struct sockaddr_in m_client_address; 	/* Client address */
 
 	int m_timeout;
 
