@@ -60,7 +60,7 @@ bool Khepera3Driver::send_control_udp(int right_wheel_speed, int left_wheel_spee
 	  /* Send received datagram back to the client */
 	printf("Sending request: %s\n", message);
 	if (sendto(m_socket, message, strlen(message), 0,
-	  (struct sockaddr *) &m_client_address, sizeof(m_client_address)) != strlen(message)) {
+	  (struct sockaddr *) &m_server_address, sizeof(m_server_address)) != strlen(message)) {
 	  ROS_ERROR("sendto() sent a different number of bytes than expected");
 	  return false;
 	}
@@ -172,12 +172,47 @@ bool Khepera3Driver::receive_data_udp(char *reply) {
 	  /* Send received datagram back to the client */
 	printf("Sending request: %s\n", message);
 	if (sendto(m_socket, message, strlen(message), 0,
-	  (struct sockaddr *) &m_client_address, sizeof(m_client_address)) != strlen(message)) {
+	  (struct sockaddr *) &m_server_address, sizeof(m_server_address)) != strlen(message)) {
 	  ROS_ERROR("sendto() sent a different number of bytes than expected");
 	  return false;
 	}
 
 	printf("Waiting to receive a message on port %d (timeout = %ds).\n", m_port, m_timeout);
+
+	alarm(m_timeout);
+	/* Block until receive message from a client */
+	if ((reply_length = recvfrom(m_socket, reply, 256, 0,
+		(struct sockaddr *) &m_client_address, &client_address_length)) < 0) {
+		if(errno == EINTR) {
+			alarm(0);
+			ROS_ERROR("timeout() received.");
+			return false;
+		} else {
+			ROS_ERROR("recvfrom() failed");
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool Khepera3Driver::initialize() {
+	char message[256];
+	sprintf(message, "$K3DRV,REQ,INIT\0");
+
+	  /* Send received datagram back to the client */
+	printf("Sending request: %s\n", message);
+	if (sendto(m_socket, message, strlen(message), 0,
+	  (struct sockaddr *) &m_server_address, sizeof(m_server_address)) != strlen(message)) {
+	  ROS_ERROR("sendto() sent a different number of bytes than expected");
+	  return false;
+	}
+
+	printf("Waiting to receive a message on port %d (timeout = %ds).\n", m_port, m_timeout);
+
+	char reply[256];
+	int reply_length;
+	socklen_t client_address_length;
 
 	alarm(m_timeout);
 	/* Block until receive message from a client */
@@ -207,7 +242,7 @@ void Khepera3Driver::connect() {
 	/* Construct local address structure */
 	memset(&m_server_address, 0, sizeof(m_server_address));   /* Zero out structure */
 	m_server_address.sin_family = AF_INET;                /* Internet address family */
-	m_server_address.sin_addr.s_addr = htonl(INADDR_ANY); /* Any incoming interface */
+	m_server_address.sin_addr.s_addr = inet_addr(m_ip_address.c_str()); /* Any incoming interface */
 	m_server_address.sin_port = htons(m_port);      /* Local port */
 
 	/* Bind to the local address */
@@ -247,11 +282,12 @@ void Khepera3Driver::run() {
 
 int main(int argc, char **argv)
 {
-  Khepera3Driver driver;
-
   ros::init(argc, argv, "khepera3_driver");
 
+  Khepera3Driver driver;
+
   driver.connect();
+  while(driver.initialize() != true) {}
   driver.run();
   driver.disconnect();
 

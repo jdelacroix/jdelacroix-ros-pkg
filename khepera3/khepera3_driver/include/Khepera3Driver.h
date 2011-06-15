@@ -14,6 +14,7 @@
 #include <stdlib.h>     /* for atoi() and exit() */
 #include <string.h>     /* for memset() */
 #include <unistd.h>     /* for close() */
+#include <netdb.h>
 
 #include <errno.h>
 #include <signal.h>
@@ -57,7 +58,6 @@ private:
 	bool send_control_udp(int right_wheel_speed, int left_wheel_speed);
 
 
-
 public:
 
 	Khepera3Driver();
@@ -65,6 +65,7 @@ public:
 	void run();
 	void connect();
 	void disconnect();
+	bool initialize();
 
 };
 
