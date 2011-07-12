@@ -9,7 +9,7 @@
 
 Khepera3Odometry::Khepera3Odometry() {
 
-	if(!(ros::param::get("khepera3/frequency", m_frequency)))
+	if(!(ros::param::get("khepera3_odometry/frequency", m_frequency)))
 		m_frequency = 2; // default frequency: 2Hz
 
 	m_client = m_node_handle.serviceClient<khepera3_driver::SensorData>("khepera3_receive_data");

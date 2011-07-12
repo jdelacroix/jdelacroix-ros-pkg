@@ -16,6 +16,8 @@
 
 class Khepera3Odometry {
 
+private:
+
 	ros::NodeHandle m_node_handle;
 	ros::ServiceClient m_client;
 	ros::Publisher m_odometry_publisher;
