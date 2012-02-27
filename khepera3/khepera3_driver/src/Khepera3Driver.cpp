@@ -18,7 +18,6 @@ Khepera3Driver::Khepera3Driver() {
 
 	m_data_receiver = m_node_handle.advertiseService("khepera3_receive_data", &Khepera3Driver::receive_data, this);
     m_control_sender = m_node_handle.advertiseService("khepera3_send_control", &Khepera3Driver::send_control, this);
-
 }
 
 Khepera3Driver::~Khepera3Driver() {
