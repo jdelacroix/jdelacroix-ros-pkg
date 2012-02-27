@@ -1,0 +1,18 @@
+<package>
+  <description brief="khepera3_controller">
+
+     This package is a non-linear unicycle controller for the K3.
+
+  </description>
+  <author>Jean-Pierre</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/khepera3_controller</url>
+  <depend package="roscpp"/>
+  <depend package="geometry_msgs"/>
+  <depend package="khepera3_driver"/>
+  <depend package="khepera3_odometry"/>
+
+</package>
+
+
