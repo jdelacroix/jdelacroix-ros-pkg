@@ -1,0 +1,9 @@
+<stack>
+  <description brief="optitrack">optitrack</description>
+  <author>Maintained by Jean-Pierre</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/optitrack</url>
+  <depend stack="ros" />
+
+</stack>

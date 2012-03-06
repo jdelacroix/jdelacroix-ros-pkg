@@ -1,7 +1,7 @@
 /*
  * UnicycleController.h
  *
- *  Created on: Mar 12, 2011
+ *  Created on: Feb 27, 2012
  *      Author: jdelacroix
  */
 
@@ -9,12 +9,13 @@
 #define UNICYCLECONTROLLER_H_
 
 #include <ros/ros.h>
-#include <vicon_driver/ViconBatchData.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
-//#include <khepera3_nav/Control.h>
-#include <khepera3_driver/KheperaIIIMovement.h>
+#include <khepera3_driver/UnicycleControl.h>
+#include <optitrack_driver/OptiTrackData.h>
+#include <vicon_driver/ViconData.h>
 #include <math.h>
+#include <string>
 
 class UnicycleController {
 
@@ -22,23 +23,28 @@ class UnicycleController {
 
 		ros::NodeHandle mNodeHandle;
 		ros::Subscriber mGoalSubscriber;
-		ros::Subscriber mPositionSubscriber;
-		ros::Publisher  mControlPublisher;
+	    ros::ServiceClient mServiceClient;
+	    ros::Subscriber mOdometrySubscriber;
+	    ros::Subscriber mPositionSubscriber;
 
-		double mGainK1, mGainK2;
 		double mLinear, mAngular;
-		geometry_msgs::Point mGoal;
-		geometry_msgs::Pose mPose;
+		geometry_msgs::Point mGoalPose;
+		geometry_msgs::Pose mUnicycleControllerPose;
 
-		double MAX_LINEAR; 		// 0.10
-		double MAX_ANGULAR;  	// 0.22
+		std::string mPositioningSystem;
+		int mUnicycleControllerID;
 
-		int mPlatformID;
+		double MAX_LINEAR;
+		double MAX_ANGULAR;
+
+		double mAngularGain, mLinearGain;
 
 		bool mUpdatedPose;
 
-		void mPositionCallback(const vicon_driver::ViconBatchData &msg);
+		void mOdometryCallback(const geometry_msgs::Pose &msg);
 		void mGoalCallback(const geometry_msgs::Point &msg);
+		void mOptiTrackCallback(const optitrack_driver::OptiTrackData &msg);
+		void mViconCallback(const vicon_driver::ViconData &msg);
 
 		void computeControl(void );
 

@@ -12,6 +12,8 @@
   <depend package="geometry_msgs"/>
   <depend package="khepera3_driver"/>
   <depend package="khepera3_odometry"/>
+  <depend package="optitrack_driver"/>
+  <depend package="vicon_driver"/>
 
 </package>
 

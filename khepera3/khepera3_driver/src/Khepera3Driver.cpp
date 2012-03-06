@@ -31,7 +31,7 @@ bool Khepera3Driver::send_control(khepera3_driver::UnicycleControl::Request &req
 	// limit v \in [-0.3148,0.3148] and w \in [-2.2763,2.2763]
 
 	const float v = fmaxf(fminf(req.linear_velocity,0.3148),-0.3148);
-	const float w = fmaxf(fminf(req.angular_velocity,2.276),-2.2763);
+	const float w = fmaxf(fminf(req.angular_velocity,2.2763),-2.2763);
 
 	const float R = 0.021; // wheel radius
 	const float L = 0.0885; // wheel base length

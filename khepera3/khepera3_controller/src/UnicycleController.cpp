@@ -4,57 +4,72 @@ using namespace std;
 
 UnicycleController::UnicycleController() {
 
-	if(!(ros::param::get("kheperaIII/gain/K1", mGainK1)))
-		mGainK1 = 0.5;
-	if(!(ros::param::get("kheperaIII/gain/K2", mGainK2)))
-		mGainK2 = 0.025;
-	if(!(ros::param::get("kheperaIII/PlatformID", mPlatformID)))
-		mPlatformID = 30;
+    mAngularGain = 0.5; mLinearGain = 0.025;
+	MAX_LINEAR = 0.3148; MAX_ANGULAR = 2.2763;
 
-	MAX_LINEAR = 0.1; MAX_ANGULAR = 0.33;
-
-	mPose.position.x = 0; mPose.position.y = 0;
-	mGoal.x = 0; mGoal.y = 0;
+	mUnicycleControllerPose.position.x = 0; mUnicycleControllerPose.position.y = 0;
+	mGoalPose.x = 0; mGoalPose.y = 0;
 
 	mUpdatedPose = false;
 
-	mGoalSubscriber = mNodeHandle.subscribe("khepera3/set_goal", 1, &UnicycleController::mGoalCallback, this);
-	mPositionSubscriber = mNodeHandle.subscribe("/vicon/batch_data", 2, &UnicycleController::mPositionCallback, this);
+	mNodeHandle.param<std::string>("motion_capture_system", mPositioningSystem, "optitrack");
+	mNodeHandle.param<int>("khepera3/platform_id", mUnicycleControllerID, 0);
 
-	mControlPublisher = mNodeHandle.advertise<khepera3_driver::KheperaIIIMovement>("khepera3/ctrl_vel", 1);
+	mOdometrySubscriber = mNodeHandle.subscribe("khepera3/odometry", 1, &UnicycleController::mOdometryCallback, this);
+	mGoalSubscriber = mNodeHandle.subscribe("khepera3/set_goal", 1, &UnicycleController::mGoalCallback, this);
+	if(mPositioningSystem.compare("optitrack") == 0) {
+	  mPositionSubscriber = mNodeHandle.subscribe("/optitrack/data", 1, &UnicycleController::mOptiTrackCallback, this);
+	} else {
+	  mPositionSubscriber = mNodeHandle.subscribe("/vicon/data", 1, &UnicycleController::mViconCallback, this);
+	}
+	mServiceClient = mNodeHandle.serviceClient<khepera3_driver::UnicycleControl>("khepera3_send_control");
 }
 
-void UnicycleController::mPositionCallback(const vicon_driver::ViconBatchData &msg) {
+void UnicycleController::mOptiTrackCallback(const optitrack_driver::OptiTrackData &msg) {
 
-	// assuming batch mode here
-	int c=0;
+    if(msg.id == mUnicycleControllerID) { // Gazelle
+      ROS_INFO("[K3_%d] Received new pose at (%0.3g,%0.3g,%0.3g).", mUnicycleControllerID, msg.position.x, msg.position.y, msg.orientation.z);
 
-	for(c=0; c<msg.count; c++) {
-		if(msg.id[c] == mPlatformID) {
+      mUnicycleControllerPose.position.x = msg.position.x;
+      mUnicycleControllerPose.position.y = msg.position.y;
+      mUnicycleControllerPose.orientation.z = msg.orientation.z;
 
-			//		ROS_INFO("Currently located at (%0.3g,%0.3g).", msg.position.x, msg.position.y);
+      mUpdatedPose = true;
+    }
+}
 
-			mPose.position.x = msg.position[c].x;
-			mPose.position.y = msg.position[c].y;
+void UnicycleController::mViconCallback(const vicon_driver::ViconData &msg) {
 
-			//	    ROS_INFO("Maintaining a heading of (%0.3g) radians.", msg.orientation.z);
+  for(int i=0; i<msg.count; i++) {
+    if(msg.id[i] == mUnicycleControllerID) {
+      ROS_INFO("Received new pose at (%0.3g,%0.3g,%0.3g).", msg.position[i].x, msg.position[i].y, msg.orientation[i].z);
 
-			mPose.orientation.z = msg.orientation[c].z; // yaw
+      mUnicycleControllerPose.position.x = msg.position[i].x;
+      mUnicycleControllerPose.position.y = msg.position[i].y;
+      mUnicycleControllerPose.orientation.z = msg.orientation[i].z;
 
-			mUpdatedPose = true;
-
-		} else {
-			//		ROS_ERROR("Positional data not intended for this platform.");
-		}
-	}
+      mUpdatedPose = true;
+    }
+  }
 }
 
 void UnicycleController::mGoalCallback(const geometry_msgs::Point &msg) {
 
-	ROS_INFO("Received new target at (%0.3g,%0.3g).", msg.x, msg.y);
+    ROS_INFO("[K3_%d] Received new goal location at (%0.3g,%0.3g)\n.", mUnicycleControllerID, msg.x, msg.y);
 
-	mGoal.x = msg.x;
-	mGoal.y = msg.y;
+    mGoalPose.x = msg.x;
+    mGoalPose.y = msg.y;
+}
+
+void UnicycleController::mOdometryCallback(const geometry_msgs::Pose &msg) {
+
+    ROS_INFO("Received new pose at (%0.3g,%0.3g,%0.3g).", msg.position.x, msg.position.y, msg.orientation.z);
+
+    mUnicycleControllerPose.position.x = msg.position.x * 100; // m -> cm
+    mUnicycleControllerPose.position.y = msg.position.y * 100; // m -> cm
+    mUnicycleControllerPose.orientation.z = msg.orientation.z;
+
+    mUpdatedPose = true;
 }
 
 void UnicycleController::computeControl(void ) {
@@ -62,57 +77,52 @@ void UnicycleController::computeControl(void ) {
 	//double r = sqrt(pow(mPose.position.x,2)+pow(mPose.position.y,2));
 
 	// h = [h_x;h_y];
-	double h_x = cos(mPose.orientation.z);
-	double h_y = sin(mPose.orientation.z);
+	double h_x = cos(mUnicycleControllerPose.orientation.z);
+	double h_y = sin(mUnicycleControllerPose.orientation.z);
 
 	// g = [g_x;g_y]
-	double g_x = mGoal.x;
-	double g_y = mGoal.y;
+	double g_x = mGoalPose.x;
+	double g_y = mGoalPose.y;
 
 	// p = [x;y];
-	double x = mPose.position.x;
-	double y = mPose.position.y;
+	double x = mUnicycleControllerPose.position.x;
+	double y = mUnicycleControllerPose.position.y;
 
 	// r = norm(p-g);
 	double r = sqrt(pow(x-g_x,2)+pow(y-g_y,2));
 
 	// w = -k1*p'*J*u;
 	// (g_x*h_y - g_y*h_x - h_y*x + h_x*y)/r^2
-	mAngular = -mGainK1*r*((g_x*h_y - g_y*h_x - h_y*x + h_x*y)/pow(r,2));
+	mAngular = -mAngularGain*r*((g_x*h_y - g_y*h_x - h_y*x + h_x*y)/pow(r,2));
 
 	// v = -k1*k2*p'*u;
 	// -(h_x*(g_x - x) + h_y*(g_y - y))/r
-	mGainK2 = .2 *mGainK2+.1*fabs(((g_x-x)*(h_x)+(g_y-y)*(h_y))/sqrt(pow(g_x-x,2)+pow(g_y-y,2)));
-	//ROS_ERROR("K2 = %0.3g",(g_x-x)*(h_x));
-	//ROS_ERROR("K2 = %0.3g",(g_y-y)*(h_y));
-	//ROS_ERROR("sqrt = %0.3g",sqrt(pow(g_x-x,2)+pow(g_y-y,2)));
-double temp123 = fabs(((g_x-x)*(h_x)+(g_y-y)*(h_y))/sqrt(pow(g_x-x,2)+pow(g_y-y,2)));
-	//ROS_ERROR("everything = %0.3g",temp123);
-	mLinear = -mGainK2*r*(-(h_x*(g_x - x) + h_y*(g_y - y))/r);
+	mLinear = -mAngularGain*mLinearGain*r*(-(h_x*(g_x - x) + h_y*(g_y - y))/r);
 
-	//if (mLinear<0){ mLinear = 0; }
-
-	//	ROS_INFO("Unbounded control signal (v,w): (%0.3g,%0.3g).", mLinear, mAngular);
+	//ROS_INFO("Unbounded control signal (v,w): (%0.3g,%0.3g).", mLinear, mAngular);
 
 	mLinear = enforceBound(mLinear, MAX_LINEAR);
 	mAngular = enforceBound(mAngular, MAX_ANGULAR);
 
-	//	ROS_INFO("Bounded control signal (v,w): (%0.3g,%0.3g).", mLinear, mAngular);
+	//ROS_INFO("Bounded control signal (v,w): (%0.3g,%0.3g).", mLinear, mAngular);
 
 	//ROS_INFO("Distance to goal: %0.3g cm for node %i", r, mPlatformID);
 
-	if(r < 5.0) // within 5 cm of the target.
+	if(r < 10.0) // within 5 cm of the target.
 	{
-		//		ROS_INFO("Within range of the goal: %0.3g cm", r);
+		//ROS_INFO("Within range of the goal: %0.3g cm", r);
 		mLinear = 0.0; mAngular = 0.0;
 	}
 
-	khepera3_driver::KheperaIIIMovement mControl;
+	khepera3_driver::UnicycleControl m_data_service;
+	m_data_service.request.linear_velocity = mLinear;
+	m_data_service.request.angular_velocity = mAngular;
 
-	mControl.linearVelocity = mLinear;
-	mControl.angularVelocity = mAngular;
-
-	mControlPublisher.publish(mControl);
+	if(mServiceClient.call(m_data_service)) {
+	  ROS_INFO("Sent control signal (v,w): (%0.3g,%0.3g).", mLinear, mAngular);
+	} else {
+	  ROS_ERROR("Failed to make service call: 'khepera3_send_control'");
+	}
 
 }
 
@@ -127,7 +137,7 @@ double UnicycleController::enforceBound(double value, double bound) {
 
 void UnicycleController::run() {
 
-	ros::Rate mLoopRate(10); // 10Hz
+	ros::Rate mLoopRate(20); // 10Hz
 
 	while(mNodeHandle.ok()) {
 		if(mUpdatedPose) {
@@ -143,10 +153,9 @@ void UnicycleController::run() {
 
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, "k3_nav_goto");
+	ros::init(argc, argv, "k3_unicycle_goto");
 
 	UnicycleController mController;
-
 	mController.run();
 
 	return 1;
