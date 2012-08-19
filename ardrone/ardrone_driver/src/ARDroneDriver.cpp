@@ -44,13 +44,13 @@ bool ARDroneDriver::send_command(ardrone_driver::ARDroneCommand::Request &req,
 			if (res.status) {
 				m_is_ready = false;
 			}
-		} else if (takeoff || !m_is_flying) {
+		} else if (takeoff && !m_is_flying) {
 			// takeoff
 			res.status = send_command_udp(SIG_TAKEOFF);
 			if (res.status) {
 				m_is_flying = true;
 			}
-		} else if (land || m_is_flying) {
+		} else if (land && m_is_flying) {
 			// land
 			res.status = send_command_udp(SIG_LAND);
 			if (res.status) {
@@ -65,6 +65,7 @@ bool ARDroneDriver::send_command(ardrone_driver::ARDroneCommand::Request &req,
 			res.status = send_command_udp(SIG_NORMAL);
 			if (res.status) {
 				m_is_ready = true;
+				m_is_flying = false;
 			}
 		} else {
 			res.status = false;
@@ -146,12 +147,17 @@ bool ARDroneDriver::send_control_udp(float roll, float pitch, float yaw, float g
 
 	control_msg << "AT*PCMD=" << (++m_sequence_number) << ",";
 
-	int32_t control_flag = 0x00000001; // bit 0: enable progressive commands, bit 1: enable combined yaw, bit 2: enable absolute control (ARDrone 2.0 only).
+	int32_t control_flag = 0x00000001;
+
+	if(roll == 0.0 && pitch == 0.0 && yaw == 0.0 && gaz == 0.0) {
+		control_flag = 0x00000000; // hover mode
+	}
+//	int32_t control_flag = 0x00000001; // bit 0: enable progressive commands, bit 1: enable combined yaw, bit 2: enable absolute control (ARDrone 2.0 only).
 
 	control_msg << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
 
-	control_msg << "AT*PCMD=" << (++m_sequence_number) << "," << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
-	control_msg << "AT*PCMD=" << (++m_sequence_number) << "," << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
+	control_msg << "\nAT*PCMD=" << (++m_sequence_number) << "," << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
+	control_msg << "\nAT*PCMD=" << (++m_sequence_number) << "," << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
 
 	std::string control = control_msg.str();
 

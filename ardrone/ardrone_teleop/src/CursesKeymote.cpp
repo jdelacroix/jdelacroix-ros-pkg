@@ -12,7 +12,7 @@ CursesKeymote::CursesKeymote() {
 	m_command_srv_client = m_node_handle.serviceClient<ardrone_driver::ARDroneCommand>("ardrone_send_command");
 	m_control_srv_client = m_node_handle.serviceClient<ardrone_driver::ARDroneControl>("ardrone_send_control");
 
-	m_control_effort = 0.8;
+	m_control_effort = 1.0;
 }
 
 CursesKeymote::~CursesKeymote() {
@@ -59,6 +59,9 @@ void CursesKeymote::run(void ) {
 				break;
 			case 0x66: // F - Gaz Down
 				signalControl(CTRL_GAZ, m_control_effort);
+				break;
+			case 0x1b: // H - Hover
+				signalControl(CTRL_TRIM, 0.0);
 				break;
 			default:
 				//signalControl(CTRL_TRIM, 0.0);
@@ -157,10 +160,10 @@ bool CursesKeymote::initialize(void ) {
 	mvprintw(2,  0,	"        |Q  | |W  | |E  | |R  | |T  |");
 	mvprintw(3,  0,	"        |   | |   | |   | |   | |   |");
 	mvprintw(4,  0,	"        '---' '---' '---' '---' '---'");
-	mvprintw(5,  0,	"         .---. .---. .---. .---. .---.             .---.");
-	mvprintw(6,  0,	"         |A  | |S  | |D  | |F  | |G  |             |K  |");
-	mvprintw(7,  0,	"         |   | |   | |   | |   | |   |             |   |");
-	mvprintw(8,  0,	"         '---' '---' '---' '---' '---'             '---'");
+	mvprintw(5,  0,	"         .---. .---. .---. .---. .---. .---.       .---.");
+	mvprintw(6,  0,	"         |A  | |S  | |D  | |F  | |G  | |H  |       |K  |");
+	mvprintw(7,  0,	"         |   | |   | |   | |   | |   | |   |       |   |");
+	mvprintw(8,  0,	"         '---' '---' '---' '---' '---' '---'       '---'");
 	mvprintw(9,  0,	"                       .------------------------------.");
 	mvprintw(10, 0,	"                       |SPACE                         |");
 	mvprintw(11, 0,	"                       |                              |");
