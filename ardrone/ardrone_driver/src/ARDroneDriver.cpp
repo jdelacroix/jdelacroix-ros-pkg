@@ -145,6 +145,8 @@ bool ARDroneDriver::send_control_udp(float roll, float pitch, float yaw, float g
 
 	std::ostringstream control_msg;
 
+	control_msg << "AT*COMWDG=" << (++m_sequence_number) << "\r";
+
 	control_msg << "AT*PCMD=" << (++m_sequence_number) << ",";
 
 	int32_t control_flag = 0x00000001;
@@ -156,8 +158,8 @@ bool ARDroneDriver::send_control_udp(float roll, float pitch, float yaw, float g
 
 	control_msg << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
 
-	control_msg << "\nAT*PCMD=" << (++m_sequence_number) << "," << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
-	control_msg << "\nAT*PCMD=" << (++m_sequence_number) << "," << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
+//	control_msg << "\nAT*PCMD=" << (++m_sequence_number) << "," << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
+//	control_msg << "\nAT*PCMD=" << (++m_sequence_number) << "," << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
 
 	std::string control = control_msg.str();
 
@@ -228,8 +230,6 @@ void ARDroneDriver::run() {
 		ros::spin();
 	}
 }
-
-
 
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "ardrone_driver");

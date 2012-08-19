@@ -12,7 +12,7 @@ CursesKeymote::CursesKeymote() {
 	m_command_srv_client = m_node_handle.serviceClient<ardrone_driver::ARDroneCommand>("ardrone_send_command");
 	m_control_srv_client = m_node_handle.serviceClient<ardrone_driver::ARDroneControl>("ardrone_send_control");
 
-	m_control_effort = 1.0;
+	m_control_effort = 0.5;
 }
 
 CursesKeymote::~CursesKeymote() {
@@ -58,13 +58,17 @@ void CursesKeymote::run(void ) {
 				signalControl(CTRL_GAZ, m_control_effort);
 				break;
 			case 0x66: // F - Gaz Down
-				signalControl(CTRL_GAZ, m_control_effort);
+				signalControl(CTRL_GAZ, -m_control_effort);
 				break;
 			case 0x1b: // H - Hover
 				signalControl(CTRL_TRIM, 0.0);
 				break;
 			default:
-				//signalControl(CTRL_TRIM, 0.0);
+				signalControl(CTRL_NOOP, 0.0);
+				if(++m_timeout > 5) {
+					signalControl(CTRL_TRIM, 0.0);
+					m_timeout = 0;
+				}
 				break;
 		}
 		loop_rate.sleep();
@@ -73,10 +77,12 @@ void CursesKeymote::run(void ) {
 
 void CursesKeymote::signalControl(ControlSignal sig, float control) {
 
-	m_control_call.request.pitch = 0.0;
-	m_control_call.request.roll = 0.0;
-	m_control_call.request.yaw = 0.0;
-	m_control_call.request.gaz = 0.0;
+	if(sig != CTRL_NOOP) {
+		m_control_call.request.pitch = 0.0;
+		m_control_call.request.roll = 0.0;
+		m_control_call.request.yaw = 0.0;
+		m_control_call.request.gaz = 0.0;
+	}
 
 
 	switch (sig) {
@@ -99,6 +105,7 @@ void CursesKeymote::signalControl(ControlSignal sig, float control) {
 
 	if(m_control_srv_client.call(m_control_call)) {
 	  //ROS_INFO("Sent emergency signal!");
+		m_timeout = 0;
 	} else {
 	  ROS_ERROR("Failed to make service call: 'ardrone_send_command'");
 	}
@@ -127,12 +134,14 @@ void CursesKeymote::signalCommand(CommandSignal sig) {
 
 	if(m_command_srv_client.call(m_command_call)) {
 	  //ROS_INFO("Sent emergency signal!");
+		m_timeout = 0;
 	} else {
 	  ROS_ERROR("Failed to make service call: 'ardrone_send_command'");
 	}
 }
 
 void CursesKeymote::stop(void ) {
+	signalCommand(CMD_LAND);
 	delwin(m_main_window);
 	endwin();
 	refresh();
