@@ -1,0 +1,16 @@
+<package>
+  <description brief="ardrone_teleop">
+
+     ardrone_teleop
+
+  </description>
+  <author>Jean-Pierre</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/ardrone_teleop</url>
+  <depend package="roscpp"/>
+  <depend package="ardrone_driver"/>
+
+</package>
+
+

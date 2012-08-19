@@ -1,0 +1,4 @@
+<launch>
+	<node name="ardriver" pkg="ardrone_driver" type="ardriver" output="screen" />
+	<node name="keymote" pkg="ardrone_teleop" type="keymote" />
+</launch>

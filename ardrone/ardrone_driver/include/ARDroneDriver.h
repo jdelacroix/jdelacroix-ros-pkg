@@ -56,9 +56,9 @@ private:
 	bool send_command(ardrone_driver::ARDroneCommand::Request &req,
 					ardrone_driver::ARDroneCommand::Response &res);
 
-	bool send_control_udp(int32_t roll, int32_t pitch, int32_t yaw, int32_t gaz);
+	bool send_control_udp(float roll, float pitch, float yaw, float gaz);
 
-	enum ARDroneSignal { SIG_NOOP, SIG_NORMAL, SIG_EMERGENCY, SIG_LAND, SIG_TAKEOFF };
+	enum ARDroneSignal { SIG_INIT, SIG_NORMAL, SIG_EMERGENCY, SIG_LAND, SIG_TAKEOFF };
 	bool send_command_udp(ARDroneSignal s);
 
 	bool m_is_flying;

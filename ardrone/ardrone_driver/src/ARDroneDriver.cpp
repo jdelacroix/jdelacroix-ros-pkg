@@ -41,19 +41,31 @@ bool ARDroneDriver::send_command(ardrone_driver::ARDroneCommand::Request &req,
 		if (emergency) {
 			// set state to emergency
 			res.status = send_command_udp(SIG_EMERGENCY);
+			if (res.status) {
+				m_is_ready = false;
+			}
 		} else if (takeoff || !m_is_flying) {
 			// takeoff
 			res.status = send_command_udp(SIG_TAKEOFF);
+			if (res.status) {
+				m_is_flying = true;
+			}
 		} else if (land || m_is_flying) {
 			// land
 			res.status = send_command_udp(SIG_LAND);
+			if (res.status) {
+				m_is_flying = false;
+			}
 		} else {
 			res.status = false;
 		}
 	} else {
-		if (!emergency) {
+		if (emergency) {
 			// set state back to normal from emergency
 			res.status = send_command_udp(SIG_NORMAL);
+			if (res.status) {
+				m_is_ready = true;
+			}
 		} else {
 			res.status = false;
 		}
@@ -70,16 +82,18 @@ bool ARDroneDriver::send_command_udp(ARDroneSignal s) {
 
 	switch (s) {
 		case SIG_EMERGENCY:
+			command_msg << "AT*REF=" << (++m_sequence_number) << "," << command_flag << "\r";
+			command_msg << "AT*REF=" << (++m_sequence_number) << "," << (command_flag ^ 0x00000100) << "\r";
+			command_msg << "AT*REF=" << (++m_sequence_number) << "," << command_flag << "\r";
+			break;
 		case SIG_NORMAL:
-			command_msg << "AT*REF=" << (++m_sequence_number) << "," << command_flag << "\r";
-			command_msg << "AT*REF=" << (++m_sequence_number) << "," << (command_flag ^ 0x00000010) << "\r";
-			command_msg << "AT*REF=" << (++m_sequence_number) << "," << command_flag << "\r";
+			command_msg << "AT*REF=" << (++m_sequence_number) << "," << (command_flag ^ 0x00000100) << "\r";
 			break;
 		case SIG_TAKEOFF:
-			command_msg << "AT*REF=" << (++m_sequence_number) << "," << (command_flag ^ 0x00000020) << "\r";
+			command_msg << "AT*REF=" << (++m_sequence_number) << "," << (command_flag ^ 0x00000200) << "\r";
 			break;
 		case SIG_LAND:
-		case SIG_NOOP:
+		case SIG_INIT:
 			command_msg << "AT*REF=" << (++m_sequence_number) << "," << command_flag << "\r";
 			break;
 		default:
@@ -107,19 +121,26 @@ bool ARDroneDriver::send_control(ardrone_driver::ARDroneControl::Request &req,
 
 	// limit all control parameters to float in range [-1.0,1.0] as per documentation
 
-	int32_t roll = fmaxf(fminf(req.roll,1.0),-1.0);
-	int32_t pitch = fmaxf(fminf(req.pitch,1.0),-1.0);
-	int32_t yaw = fmaxf(fminf(req.yaw,1.0),-1.0);
-	int32_t gaz = fmaxf(fminf(req.gaz,1.0),-1.0);
+	if(m_is_flying) {
 
-	res.status = send_control_udp(roll, pitch, yaw, gaz);
+		float roll = fmaxf(fminf(req.roll,1.0),-1.0);
+		float pitch = fmaxf(fminf(req.pitch,1.0),-1.0);
+		float yaw = fmaxf(fminf(req.yaw,1.0),-1.0);
+		float gaz = fmaxf(fminf(req.gaz,1.0),-1.0);
+
+//		printf("control signals: (%0.3f, %0.3f, %0.3f, %0.3f)\n", roll, pitch, yaw, gaz);
+
+		res.status = send_control_udp(roll, pitch, yaw, gaz);
+
+	} else {
+		res.status = true;
+	}
 
 	return res.status;
 
 }
 
-bool ARDroneDriver::send_control_udp(int32_t roll, int32_t pitch, int32_t yaw, int32_t gaz) {
-	// BOOKMARK
+bool ARDroneDriver::send_control_udp(float roll, float pitch, float yaw, float gaz) {
 
 	std::ostringstream control_msg;
 
@@ -127,11 +148,14 @@ bool ARDroneDriver::send_control_udp(int32_t roll, int32_t pitch, int32_t yaw, i
 
 	int32_t control_flag = 0x00000001; // bit 0: enable progressive commands, bit 1: enable combined yaw, bit 2: enable absolute control (ARDrone 2.0 only).
 
-	control_msg << control_flag << "," << roll << "," << pitch << "," << gaz << "," << yaw << "\r";
+	control_msg << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
+
+	control_msg << "AT*PCMD=" << (++m_sequence_number) << "," << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
+	control_msg << "AT*PCMD=" << (++m_sequence_number) << "," << control_flag << "," << *(int32_t*) &roll << "," << *(int32_t*) &pitch << "," << *(int32_t*) &gaz << "," << *(int32_t*) &yaw << "\r";
 
 	std::string control = control_msg.str();
 
-	char message[256];
+	char message[1024];
 	sprintf(message, "%s", control.c_str());
 
 	/* Send received datagram back to the client */
@@ -149,7 +173,7 @@ bool ARDroneDriver::send_control_udp(int32_t roll, int32_t pitch, int32_t yaw, i
 
 
 bool ARDroneDriver::initialize() {
-	return send_command_udp(SIG_NOOP);
+	return send_command_udp(SIG_INIT);
 }
 
 void ARDroneDriver::connect() {
@@ -167,8 +191,8 @@ void ARDroneDriver::connect() {
 	m_server_address.sin_port = htons(m_port);      /* Local port */
 
 	/* Bind to the local address */
-	if (bind(m_socket, (struct sockaddr *) &m_server_address, sizeof(m_server_address)) < 0)
-		ROS_FATAL("bind() failed");
+//	if (bind(m_socket, (struct sockaddr *) &m_server_address, sizeof(m_server_address)) < 0)
+//		ROS_FATAL("bind() failed");
 
 	/* Set reading timeout */
 
