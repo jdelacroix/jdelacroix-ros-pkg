@@ -60,7 +60,7 @@ void CursesKeymote::run(void ) {
 			case 0x66: // F - Gaz Down
 				signalControl(CTRL_GAZ, -m_control_effort);
 				break;
-			case 0x1b: // H - Hover
+			case 0x68: // H - Hover
 				signalControl(CTRL_TRIM, 0.0);
 				break;
 			default:

@@ -1,4 +1,8 @@
 <launch>
-	<node name="ardriver" pkg="ardrone_driver" type="ardriver" output="screen" />
-	<node name="keymote" pkg="ardrone_teleop" type="keymote" />
+	<arg name="ip_addr" />
+
+	<param name="ardrone/ip_addr" value="$(arg ip_addr)" />
+
+	<node name="ardriver" pkg="ardrone_driver" type="ardriver" />
+	<node name="keymote" pkg="ardrone_teleop" type="keymote" output="screen" />
 </launch>
