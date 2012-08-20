@@ -22,11 +22,10 @@ CursesKeymote::~CursesKeymote() {
 void CursesKeymote::run(void ) {
 
 	ros::Rate loop_rate(30); // 30Hz
-	int input_ch;
 
-	while(m_node_handle.ok() && (input_ch = getch()) != 0x20) {
+	while(m_node_handle.ok()) {
 		ros::spinOnce();
-		switch (input_ch) {
+		switch (getch()) {
 			case 0x6b: // K - Emergency/Kill
 				signalCommand(CMD_EMERGENCY);
 				break;
@@ -60,7 +59,7 @@ void CursesKeymote::run(void ) {
 			case 0x66: // F - Gaz Down
 				signalControl(CTRL_GAZ, -m_control_effort);
 				break;
-			case 0x68: // H - Hover
+			case 0x20: // SPACE - Hover
 				signalControl(CTRL_TRIM, 0.0);
 				break;
 			default:
@@ -105,7 +104,9 @@ void CursesKeymote::signalControl(ControlSignal sig, float control) {
 
 	if(m_control_srv_client.call(m_control_call)) {
 	  //ROS_INFO("Sent emergency signal!");
-		m_timeout = 0;
+		if (sig != CTRL_NOOP) {
+			m_timeout = 0;
+		}
 	} else {
 	  ROS_ERROR("Failed to make service call: 'ardrone_send_command'");
 	}
@@ -169,15 +170,15 @@ bool CursesKeymote::initialize(void ) {
 	mvprintw(2,  0,	"        |Q  | |W  | |E  | |R  | |T  |");
 	mvprintw(3,  0,	"        |   | |   | |   | |   | |   |");
 	mvprintw(4,  0,	"        '---' '---' '---' '---' '---'");
-	mvprintw(5,  0,	"         .---. .---. .---. .---. .---. .---.       .---.");
-	mvprintw(6,  0,	"         |A  | |S  | |D  | |F  | |G  | |H  |       |K  |");
-	mvprintw(7,  0,	"         |   | |   | |   | |   | |   | |   |       |   |");
-	mvprintw(8,  0,	"         '---' '---' '---' '---' '---' '---'       '---'");
+	mvprintw(5,  0,	"         .---. .---. .---. .---. .---.             .---.");
+	mvprintw(6,  0,	"         |A  | |S  | |D  | |F  | |G  |             |K  |");
+	mvprintw(7,  0,	"         |   | |   | |   | |   | |   |             |   |");
+	mvprintw(8,  0,	"         '---' '---' '---' '---' '---'             '---'");
 	mvprintw(9,  0,	"                       .------------------------------.");
 	mvprintw(10, 0,	"                       |SPACE                         |");
 	mvprintw(11, 0,	"                       |                              |");
-	mvprintw(12, 0,	"                       '------------------------------'");
-	mvprintw(13, 0,	"   Space - Quit");
+	mvprintw(12, 0,	"  Ctrl-C - Quit        '------------------------------'");
+	mvprintw(13, 0,	"   Space - Hover");
 	mvprintw(14, 0,	" W,A,S,D - Roll/Pitch     Q,E - Yaw      R/F - Up/Down");
 	mvprintw(15, 0,	"       T - Takeoff          G - Land       K - Kill");
 
