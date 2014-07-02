@@ -1,9 +1,5 @@
-/*
- * K3Driver.h
- *
- *  Created on: Jun 8, 2011
- *      Author: jdelacroix
- */
+// Copyright (C) 2014 Georgia Tech Research Corporation
+// see the LICENSE file included with this software
 
 #ifndef K3DRIVER_H_
 #define K3DRIVER_H_

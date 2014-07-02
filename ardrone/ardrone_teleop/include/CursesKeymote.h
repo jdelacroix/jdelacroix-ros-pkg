@@ -1,9 +1,5 @@
-/*
- * CursesKeymote.h
- *
- *  Created on: Aug 18, 2012
- *      Author: jpdelacroix
- */
+// Copyright (C) 2014 Georgia Tech Research Corporation
+// see the LICENSE file included with this software
 
 #ifndef CURSESKEYMOTE_H_
 #define CURSESKEYMOTE_H_

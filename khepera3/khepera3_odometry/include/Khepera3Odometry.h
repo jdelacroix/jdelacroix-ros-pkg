@@ -1,9 +1,5 @@
-/*
- * Khepera3Odometry.h
- *
- *  Created on: Jun 15, 2011
- *      Author: jdelacroix
- */
+// Copyright (C) 2014 Georgia Tech Research Corporation
+// see the LICENSE file included with this software
 
 #ifndef KHEPERA3ODOMETRY_H_
 #define KHEPERA3ODOMETRY_H_

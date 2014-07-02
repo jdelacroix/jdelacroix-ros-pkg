@@ -1,9 +1,5 @@
-/*
- * ArduinoUSBGameport.cpp
- *
- *  Created on: Jun 5, 2011
- *      Author: Jean-Pierre de la Croix
- */
+// Copyright (C) 2014 Georgia Tech Research Corporation
+// see the LICENSE file included with this software
 
 #include "ArduinoUSBGameport.h"
 

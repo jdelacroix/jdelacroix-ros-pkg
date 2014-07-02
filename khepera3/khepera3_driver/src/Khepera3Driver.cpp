@@ -1,3 +1,6 @@
+// Copyright (C) 2014 Georgia Tech Research Corporation
+// see the LICENSE file included with this software
+
 #include "Khepera3Driver.h"
 
 void alarm_callback(int arg) { }

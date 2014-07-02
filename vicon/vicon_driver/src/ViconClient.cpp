@@ -1,3 +1,6 @@
+// Copyright (C) 2014 Georgia Tech Research Corporation
+// see the LICENSE file included with this software
+
 #include "ViconClient.h"
 
 ViconClient::ViconClient()
