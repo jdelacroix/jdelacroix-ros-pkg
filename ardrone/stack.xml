@@ -1,9 +1,0 @@
-<stack>
-  <description brief="ardrone">AR.Drone stack for ROS packages using the (modified) AR.Drone platform.</description>
-  <author>Maintained by Jean-Pierre de la Croix</author>
-  <license>BSD</license>  
-  <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/ardrone</url>
-  <depend stack="ros" />
-
-</stack>
