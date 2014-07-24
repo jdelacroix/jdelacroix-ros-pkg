@@ -106,6 +106,8 @@ bool ArduinoSerialPort::serial_port_read_eol(arduino_serial_port::SerialPacketRe
 
 int ArduinoSerialPort::serial_port_init(const char* name, int baud)
 {
+    // NOTE: This code was adapated from a Linux serial port tutorial, source currently unknown
+
     struct termios toptions;
     int fd;
 
@@ -124,7 +126,7 @@ int ArduinoSerialPort::serial_port_init(const char* name, int baud)
         ROS_ERROR("init_serialport: Couldn't get term attributes");
         return -1;
     }
-    speed_t brate = baud; // let you override switch below if needed
+    speed_t brate = baud;
     switch(baud) {
 		case 4800:   brate=B4800;   break;
 		case 9600:   brate=B9600;   break;
@@ -142,6 +144,7 @@ int ArduinoSerialPort::serial_port_init(const char* name, int baud)
     toptions.c_cflag &= ~CSTOPB;
     toptions.c_cflag &= ~CSIZE;
     toptions.c_cflag |= CS8;
+    
     // no flow control
     toptions.c_cflag &= ~CRTSCTS;
 

@@ -1,0 +1,31 @@
+<package>
+  <name>arduino_usb_gameport</name>
+  <version>2.0.0</version>
+  <description>Arduino USB to Gameport joystick adapter. Currently only sports support for some CH Products joystick shipped with the iRobot Magellan.</description>
+  <maintainer email="ajpl.delacroix@gmail.com">Jean-Pierre de la Croix</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://ros.org/wiki/arduino_usb_gameport</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Jean-Pierre de la Croix</author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>roscpp</build_depend>
+  <build_depend>arduino_serial_port</build_depend>
+  <build_depend>message_generation</build_depend>
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>roscpp</run_depend>
+  <run_depend>arduino_serial_port</run_depend>
+  <run_depend>message_runtime</run_depend>
+
+  <!-- Dependencies needed only for running tests. -->
+  <!-- <test_depend>roscpp</test_depend> -->
+  <!-- <test_depend>arduino_serial_port</test_depend> -->
+
+</package>

@@ -1,9 +1,0 @@
-<stack>
-  <description brief="vicon">Vicon RTE ROS driver</description>
-  <author>Maintained by Jean-Pierre de la Croix</author>
-  <license>BSD</license>  
-  <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/vicon</url>
-  <depend stack="ros" />
-
-</stack>

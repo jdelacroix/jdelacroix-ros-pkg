@@ -1,0 +1,26 @@
+<package>
+  <name>arduino</name>
+  <version>2.0.0</version>
+  <description>Arduino stack for ROS packages using the Arduino hardware.</description>
+  <maintainer email="ajpl.delacroix@gmail.com">Jean-Pierre de la Croix</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://ros.org/wiki/arduino</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Jean-Pierre de la Croix</author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>arduino_serial_port</run_depend>
+  <run_depend>arduino_usb_gameport</run_depend>
+
+  <!-- Dependencies needed only for running tests. -->
+
+</package>

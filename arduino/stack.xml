@@ -1,9 +1,0 @@
-<stack>
-  <description brief="arduino">Arduino stack for ROS packages using the Arduino hardware.</description>
-  <author>Maintained by Jean-Pierre de la Croix</author> 
-  <license>BSD</license>  
-  <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/arduino</url>
-  <depend stack="ros" />
-
-</stack>
