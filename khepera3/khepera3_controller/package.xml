@@ -1,0 +1,41 @@
+<package>
+  <name>khepera3_controller</name>
+  <version>2.0.0</version>
+  <description>This package is a non-linear unicycle controller for the K3.</description>
+  <maintainer email="ajpl.delacroix@gmail.com">Jean-Pierre de la Croix</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://ros.org/wiki/khepera3_controller</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Jean-Pierre de la Croix</author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>roscpp</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>khepera3_driver</build_depend>
+  <build_depend>khepera3_odometry</build_depend>
+  <build_depend>optitrack_driver</build_depend>
+  <build_depend>vicon_driver</build_depend>
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>roscpp</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>khepera3_driver</run_depend>
+  <run_depend>khepera3_odometry</run_depend>
+  <run_depend>optitrack_driver</run_depend>
+  <run_depend>vicon_driver</run_depend>
+
+  <!-- Dependencies needed only for running tests. -->
+  <!-- <test_depend>roscpp</test_depend> -->
+  <!-- <test_depend>geometry_msgs</test_depend> -->
+  <!-- <test_depend>khepera3_driver</test_depend> -->
+  <!-- <test_depend>khepera3_odometry</test_depend> -->
+  <!-- <test_depend>optitrack_driver</test_depend> -->
+  <!-- <test_depend>vicon_driver</test_depend> -->
+
+</package>

@@ -1,0 +1,27 @@
+<package>
+  <name>khepera3</name>
+  <version>2.0.0</version>
+  <description>ROS packages for KTeam's Khepera III (K3)</description>
+  <maintainer email="ajpl.delacroix@gmail.com">Jean-Pierre de la Croix</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://ros.org/wiki/khepera3</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Jean-Pierre de la Croix</author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>khepera3_controller</run_depend>
+  <run_depend>khepera3_driver</run_depend>
+  <run_depend>khepera3_odometry</run_depend>
+
+  <!-- Dependencies needed only for running tests. -->
+
+</package>
